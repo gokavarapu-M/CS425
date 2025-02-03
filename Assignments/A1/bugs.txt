@@ -1,0 +1,4 @@
+1. A person not in a group is able to msg inside group
+2. A person who left the group can also message in the group
+3. Need to notify person in group if some joined or left the group
+4. someone can't leave a group if they are not in it
