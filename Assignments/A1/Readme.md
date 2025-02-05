@@ -8,7 +8,7 @@
 make
 ```
 
-This make call runs a bash code which complies `server_grp.cpp` and `cilent_grp.cpp`
+This make call runs a bash code which complies `server_grp.cpp` and `client_grp.cpp`
 
 ### Running the Server
 
@@ -25,9 +25,9 @@ Server listening on port 12345
 ### Running a Client
 
 ```bash
-./client_grp
+./cilent_grp
 ```
-You can run multiple cilents on multiple terminals, only restriction is you can't run same cilent on different terminals.
+You can run multiple clients on multiple terminals, only restriction is you can't run same client on different terminals.
 <br/> On success, you we receieve a welcome message from server.
 ```bash
 Welcome to the chat server!
@@ -53,7 +53,7 @@ Welcome to the chat server!
 
 - **Admin Privileges**: There are no administrative controls for managing users or groups.
 - **Message History**: Messages are not stored persistently; only active users see messages.
-- **User Status Management**: No explicit "online/offline" status tracking. Implicitly maintained as `cilents` and `users` maps.
+- **User Status Management**: No explicit "online/offline" status tracking. Implicitly maintained as `clients` and `users` maps.
 - **Rate Limiting**: No restrictions on the frequency of messages sent.
 - **Notification**: No notifications when users join/leave groups (commented in code).
 
@@ -77,7 +77,7 @@ Welcome to the chat server!
 ### **Data Structures**
 
 - **`unordered_map` for Clients/Groups**: Provides O(1) average complexity for lookups.
-- **`unordered_set` for Group Members**: Ensures unique client sockets (which implies unique cilents) in groups.
+- **`unordered_set` for Group Members**: Ensures unique client sockets (which implies unique clients) in groups.
 
 ### **Edge Cases**
 
@@ -89,8 +89,8 @@ Welcome to the chat server!
   <br/> **Why?**: [Piazza post](https://piazza.com/class/m5h01uph1h12eb/post/67)
 - Clients can send empty messages.
   <br/> **Why?** [Piazza post](https://piazza.com/class/m5h01uph1h12eb/post/68)
-- When a cilent disconnects (s)he is removed from all groups.
-  <br/> **Why?**: To maintain completness in `cilents` map. [Piazza post](https://piazza.com/class/m5h01uph1h12eb/post/32)
+- When a client disconnects (s)he is removed from all groups.
+  <br/> **Why?**: To maintain completness in `clients` map. [Piazza post](https://piazza.com/class/m5h01uph1h12eb/post/32)
 - A person who creates group is implicitly added to the group.
   <br/> **Why?**: As can be seen in Listing 2, page 5 of the assignment pdf, client creating the group doesn't need to execute the `/join_group` command. This client is implicitly part of the group.
 - Error of this kind are not resolved.
@@ -110,9 +110,9 @@ bob: /msghow are you
 - Assuming `users.txt` doesn't change once server is started and usernames, passwords doesn't contain spaces.
 - Server don't maintain meta data once it stopped running.
   <br/> **Why**: [Piazza post](https://piazza.com/class/m5h01uph1h12eb/post/42)
-- Cilents are disconnected once the server stops.
-  <br/> **Why**: They can't send messages without server.
-- Cilent can't open multiple connections it will throw an error.
+- Clients are disconnected once the server stops.
+  <br/> **Why?**: They can't send messages without server.
+- Client can't open multiple connections it will throw an error.
   <br/> **Why?**: [Piazza post](https://piazza.com/class/m5h01uph1h12eb/post/31)
 
 ### **Error Handling**
@@ -122,8 +122,8 @@ bob: /msghow are you
 
 1. Invalid command: `/hi all`, `/hi` doesn't exist.
 2. Invalid format: `/create_group CS 425`, group name contains no space.
-3. Empty message: `\broadcast `, empty message returns error.
-4. Note that a group with zero cilents can exist.
+3. Empty message: `/broadcast `, empty message returns error.
+4. Note that a group with zero clients can exist.
 5. If a command has $n$ parts then it should be separated by atleast $n-1$ spacings. Otherwise server will reply as invalid format.
 
 - **Example**: `/msg bob` will return `Error: Invalid Format.`,
@@ -291,10 +291,10 @@ handle_client(client_socket)
 ## Contribution of Team Members
 
 | Team Member        | Contribution (%) | Work Done                                                                                                                              |
-| ------------------ | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Manikanta (220409) | 40%              | Designed server architecture, modularized code , Functionalities, Commenting code, Conducted testing, debugging, and documentation.    |
-| Rhema (221125)     | 30%              | Implemented authentication, handled multithreading, edge cases like empty messages, Commenting Code, Conducted testing, debugging.     |
-| Jyothisha (220862) | 30%              | Implemented server architecture, Resolved edge cases like invalid format, Implemented string parsing, Conducted testing, documentation |
+| ------------------ | :----------------: | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Manikanta <br/> (220409) | 40%              | Designed server architecture, modularized code , Functionalities, Commenting code, Conducted testing, debugging, and documentation.    |
+| Rhema <br/> (221125)     | 30%              | Implemented authentication, handled multithreading, edge cases like empty messages, Commenting Code, Conducted testing, debugging.     |
+| Jyothisha <br/> (220862) | 30%              | Implemented server architecture, Resolved edge cases like invalid format, Implemented string parsing, Conducted testing, documentation |
 
 ---
 
@@ -308,7 +308,7 @@ handle_client(client_socket)
 
 ## Declaration
 
-We declare that this assignment was completed independently without plagiarism. Any external sources used are appropriately referenced.
+We, (**Manikanta, Rhema and Jyothisha**) declare that this assignment was completed independently without plagiarism. Any external sources used are appropriately referenced.
 
 ## Feedback
 
