@@ -1,5 +1,27 @@
 # **Chat Server with Groups and Private Messaging**
 
+## How to Complie and Run
+
+### Compiling
+
+```bash
+make
+```
+
+This make call runs a bash code which complies `server_grp.cpp` and `cilent_grp.cpp`
+
+### Running the Server
+
+```bash
+./server_grp
+```
+
+### Running the Client
+
+```bash
+./client_grp
+```
+
 ## **Assignment Features**
 
 ### **Implemented Features**
@@ -20,7 +42,7 @@
 
 - **Admin Privileges**: There are no administrative controls for managing users or groups.
 - **Message History**: Messages are not stored persistently; only active users see messages.
-- **User Status Management**: No explicit "online/offline" status tracking.
+- **User Status Management**: No explicit "online/offline" status tracking. Implicitly maintained as `cilents` and `users` maps.
 - **Rate Limiting**: No restrictions on the frequency of messages sent.
 - **Notification**: No notifications when users join/leave groups (commented in code).
 
@@ -46,15 +68,55 @@
 - **`unordered_map` for Clients/Groups**: Provides O(1) average complexity for lookups.
 - **`unordered_set` for Group Members**: Ensures unique client sockets in groups.
 
+### **Edge Cases**
+
+- A group with zero user can exist.
+  <br/> **Why?**: [Piazza post](https://piazza.com/class/m5h01uph1h12eb/post/61)
+- Message can only be sent to active user but not any user in `users.txt`
+  <br/> **Why?**: [Piazza post](https://piazza.com/class/m5h01uph1h12eb/post/23)
+- Group name cannot contain empty spaces.
+  <br/> **Why?**: [Piazza post](https://piazza.com/class/m5h01uph1h12eb/post/67)
+- Clients can send empty messages.
+  <br/> **Why?** [Piazza post](https://piazza.com/class/m5h01uph1h12eb/post/68)
+- When a cilent disconnects (s)he is removed from all groups.
+  <br/> **Why?**: To maintain completness in `cilents` map. [Piazza post](https://piazza.com/class/m5h01uph1h12eb/post/32)
+- A person who creates group is implicitly added to the group.
+  <br/> **Why?**: As can be seen in Listing 2, page 5 of the assignment pdf, client creating the group doesn't need to execute the `/join_group` command. This client is implicitly part of the group.
+- Error of this kind are not resolved.
+
+```
+bob: /msg
+alice: /msg bob how are you?
+
+after the above implementation, the I/O space of bob becomes as follows
+
+bob: /msghow are you
+```
+
+- **Why**: [Piazza post](https://piazza.com/class/m5h01uph1h12eb/post/64)
+- A group with zero users can exist
+  <br/> **Why?**: [Piazza post](https://piazza.com/class/m5h01uph1h12eb/post/61)
+- Assuming `users.txt` doesn't change once server is started and usernames, passwords doesn't contain spaces.
+- Server don't maintain meta data once it stopped running.
+  <br/> **Why**: [Piazza post](https://piazza.com/class/m5h01uph1h12eb/post/42)
+- Cilents are disconnected once the server stops.
+  <br/> **Why**: They can't send messages without server.
+- Cilent can't open multiple connections it will throw an error.
+  <br/> **Why?**: [Piazza post](https://piazza.com/class/m5h01uph1h12eb/post/31)
+
 ### **Error Handling**
 
 - **Client Errors**: Invalid commands, Invalid formats, missing message content(empty messages), and authentication failures return appropriate error messages.
 - Below are some example of error conditions.
 
-1. Invalid command: `\hi all`, `\hi` doesn't exist.
-2. Invalid format: `\create_group CS 425`, group name contains no space.
+1. Invalid command: `/hi all`, `/hi` doesn't exist.
+2. Invalid format: `/create_group CS 425`, group name contains no space.
 3. Empty message: `\broadcast `, empty message returns error.
 4. Note that a group with zero cilents can exist.
+5. If a command has $n$ parts then it should be separated by atleast $n-1$ spacings. Otherwise server will reply as invalid format.
+
+- **Example**: `/msg bob` will return `Error: Invalid Format.`,
+  <br/> while `/msg bob ` will return `Error: Empty message.`
 
 - **Server Errors**: The server detects and handles socket failures gracefully, ensuring stable operation.
 
@@ -146,24 +208,24 @@
 | --------------------------------------------------- | ------------------------------------------------------------------------------- |
 | Concurrency issues (race conditions on shared data) | Used std::mutex to synchronize access.                                          |
 | Handling multiple clients efficiently               | Used threads instead of processes to minimize overhead.                         |
-| Message parsing complexities                        | Implemented structured string parsing with proper validation.                   |
 | Error handling for edge cases                       | Added checks for invalid commands, empty messages, and authentication failures. |
 
 ## Contribution of Team Members
 
-| Team Member        | Contribution (%) | Work Done                                                                                              |
-| ------------------ | ---------------- | ------------------------------------------------------------------------------------------------------ |
-| Manikanta (220409) | 40%              | Designed server architecture, handled multithreading, Conducted testing, debugging, and documentation. |
-| Rhema (221125)     | 30%              | Implemented authentication and messaging functions.                                                    |
-| Jyothisha (220862) | 30%              | -                                                                                                      |
+| Team Member        | Contribution (%) | Work Done                                                                                                                              |
+| ------------------ | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Manikanta (220409) | 40%              | Designed server architecture, modularized code , Functionalities, Commenting code, Conducted testing, debugging, and documentation.    |
+| Rhema (221125)     | 30%              | Implemented authentication, handled multithreading, edge cases like empty messages, Commenting Code, Conducted testing, debugging.     |
+| Jyothisha (220862) | 30%              | Implemented server architecture, Resolved edge cases like invalid format, Implemented string parsing, Conducted testing, documentation |
 
 ---
 
 ## Sources Referred
 
-- Beej's Guide to Network Programming
-- C++ Reference (std::thread, std::mutex, std::unordered_map)
-- Stack Overflow discussions on socket programming
+- [Mutex](https://www.geeksforgeeks.org/std-mutex-in-cpp/) and [lock_guard()](https://www.geeksforgeeks.org/stdunique_lock-or-stdlock_guard-which-is-better/) from geeks for geeks.
+- C++ Reference (std::thread, std::mutex)
+- Linked post on [locks](https://www.linkedin.com/advice/0/what-some-common-pitfalls-best-practices-when-using)
+- cpp [filesystem](https://devdocs.io/cpp-filesystem/) reference from Devdocs.
 
 ## Declaration
 
@@ -171,33 +233,5 @@ We declare that this assignment was completed independently without plagiarism. 
 
 ## Feedback
 
-- The assignment helped in understanding socket programming, multithreading, and synchronization.
-- The provided hints were useful, especially regarding std::mutex for thread safety.
-- _Suggestion_: Include additional test cases in the starter code to help verify correctness quickly.
-
-## How to Complie and Run
-
-### Compiling
-
-```bash
-make
-```
-
-This make call runs a bash code
-
-```
-g++ -std=c++11 server_grp.cpp -o server_grp -pthread
-g++ -std=c++11 client_grp.cpp -o client_grp -pthread
-```
-
-### Running the Server
-
-```bash
-./server_grp
-```
-
-### Running the Client
-
-```bash
-./client_grp
-```
+- The provided hints were useful, especially regarding `std::mutex` for thread safety.
+- _Suggestion_: Providing a bash code for stress testing makes testing easy. Because implementing it on own is not a part of course.

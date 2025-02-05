@@ -70,14 +70,14 @@ void notify_others(int client_socket, std::string message) // function to notify
     }
 }
 
-void broadcast(int client_socket, std::string message) // function to broadcast message to all clients
+void broadcast(std::string username, int client_socket, std::string message) // function to broadcast message to all clients
 {
     std::string msg = message.substr(11);
     if (msg.empty()) // Error message if message is empty
     {
         std::string response = "Error: Message cannot be empty.";
         send(client_socket, response.c_str(), response.size(), 0);
-        continue;
+        return;
     }
 
     std::string formatted_msg = "[Broadcast from " + username + "]: " + msg;
@@ -93,7 +93,7 @@ void broadcast(int client_socket, std::string message) // function to broadcast 
     }
 }
 
-void private_msg(int client_socket, std::string message) // function to send private message to a specific client
+void private_msg(std::string username, int client_socket, std::string message) // function to send private message to a specific client
 {
     size_t space = message.find(' ', 5);
     if (space != std::string::npos)
@@ -107,7 +107,7 @@ void private_msg(int client_socket, std::string message) // function to send pri
         {
             std::string response = "Error: Message cannot be empty.";
             send(client_socket, response.c_str(), response.size(), 0);
-            continue;
+            return;
         }
 
         bool found = false; // flag to check if the target user is found or not
@@ -123,9 +123,33 @@ void private_msg(int client_socket, std::string message) // function to send pri
 
         if (!found) // Error message if target user is not found
         {
-            std::string response = "Error: User " + target_user + " doesnot exist.";
-            send(client_socket, response.c_str(), response.size(), 0);
+            bool exist = false;
+            std::lock_guard<std::mutex> lock(users_mutex);
+            for (auto &pair : users)
+            {
+                if (pair.first == target_user)
+                {
+                    exist = true;
+                    break;
+                }
+            }
+            if (exist == true)
+            {
+                std::string response = "Error: User " + target_user + " is not online.";
+                send(client_socket, response.c_str(), response.size(), 0);
+            }
+            else
+            {
+                std::string response = "Error: User " + target_user + " doesnot exist.";
+                send(client_socket, response.c_str(), response.size(), 0);
+            }
         }
+    }
+    else
+    {
+        std::string response = "Error: Invalid Format.";
+        send(client_socket, response.c_str(), response.size(), 0);
+        return;
     }
 }
 
@@ -138,13 +162,13 @@ void create_group(int client_socket, std::string message) // function to create 
     {
         std::string response = "Error: Group name cannot be empty.";
         send(client_socket, response.c_str(), response.size(), 0);
-        continue;
+        return;
     }
     else if (group_name.find(' ') != std::string::npos) // Error message if group name contains space
     {
         std::string response = "Error: Group name cannot contain space.";
         send(client_socket, response.c_str(), response.size(), 0);
-        continue;
+        return;
     }
     else if (!groups.count(group_name)) // Create group if it doesn't exist
     {
@@ -168,13 +192,13 @@ void join_group(int client_socket, std::string message) // function to join a gr
     {
         std::string response = "Error: Group name cannot be empty.";
         send(client_socket, response.c_str(), response.size(), 0);
-        continue;
+        return;
     }
     else if (group_name.find(' ') != std::string::npos) // Error message if group name contains space
     {
         std::string response = "Error: Group name cannot contain space.";
         send(client_socket, response.c_str(), response.size(), 0);
-        continue;
+        return;
     }
     else if (groups.count(group_name))
     {
@@ -182,7 +206,7 @@ void join_group(int client_socket, std::string message) // function to join a gr
         {
             std::string response = "Error: You are already a member of group " + group_name + ".";
             send(client_socket, response.c_str(), response.size(), 0);
-            continue;
+            return;
         }
         groups[group_name].insert(client_socket);
         std::string response = "You joined the group " + group_name + ".";
@@ -214,13 +238,13 @@ void leave_group(int client_socket, std::string message) // function to leave a 
     {
         std::string response = "Error: Group name cannot be empty.";
         send(client_socket, response.c_str(), response.size(), 0);
-        continue;
+        return;
     }
     else if (group_name.find(' ') != std::string::npos) // Error message if group name contains space
     {
         std::string response = "Error: Group name cannot contain space.";
         send(client_socket, response.c_str(), response.size(), 0);
-        continue;
+        return;
     }
     else if (groups.count(group_name))
     {
@@ -228,7 +252,7 @@ void leave_group(int client_socket, std::string message) // function to leave a 
         {
             std::string response = "Error: You are not a member of group " + group_name + ".";
             send(client_socket, response.c_str(), response.size(), 0);
-            continue;
+            return;
         }
         groups[group_name].erase(client_socket);
         std::string response = "You left the group " + group_name + ".";
@@ -265,7 +289,7 @@ void cleanup(int client_socket) // function to cleanup the client
     }
 }
 
-void group_msg(int client_socket, std::string message) // function to send message to a group
+void group_msg(std::string username, int client_socket, std::string message) // function to send message to a group
 {
     size_t space = message.find(' ', 11);
     if (space != std::string::npos)
@@ -278,7 +302,7 @@ void group_msg(int client_socket, std::string message) // function to send messa
         {
             std::string response = "Error: Message cannot be empty.";
             send(client_socket, response.c_str(), response.size(), 0);
-            continue;
+            return;
         }
 
         std::lock_guard<std::mutex> lock(groups_mutex); // locking the groups mapping
@@ -349,7 +373,7 @@ void handle_client(int client_socket) // function to handle each client (thread 
     welcome_msg(client_socket);
 
     // Notify others that a new client has joined
-    notify_others(client_socket, username + " has joined the chat.", 0);
+    notify_others(client_socket, username + " has joined the chat.");
 
     // Handling various commands/messages
     while (true)
@@ -363,11 +387,11 @@ void handle_client(int client_socket) // function to handle each client (thread 
 
         if (message.rfind("/broadcast ", 0) == 0) // Broadcast message to all clients
         {
-            broadcast(client_socket, message);
+            broadcast(username, client_socket, message);
         }
         else if (message.rfind("/msg ", 0) == 0) // Private message to a specific client
         {
-            private_msg(client_socket, message);
+            private_msg(username, client_socket, message);
         }
         else if (message.rfind("/create_group ", 0) == 0) // Create a group
         {
@@ -379,7 +403,7 @@ void handle_client(int client_socket) // function to handle each client (thread 
         }
         else if (message.rfind("/group_msg ", 0) == 0) // Message sent to a group
         {
-            group_msg(client_socket, message);
+            group_msg(username, client_socket, message);
         }
         else if (message.rfind("/leave_group ", 0) == 0) // Leave a group
         {
@@ -392,7 +416,7 @@ void handle_client(int client_socket) // function to handle each client (thread 
         else // Error message if invalid format i.e., no command is matched
         {
             std::string formatted_msg = "Error: Invalid format.";
-            send(pair.first, formatted_msg.c_str(), formatted_msg.size(), 0);
+            send(client_socket, formatted_msg.c_str(), formatted_msg.size(), 0);
         }
     }
 
@@ -406,7 +430,7 @@ void handle_client(int client_socket) // function to handle each client (thread 
     close(client_socket);
 }
 
-void load_users() // function to load users from users.txt file
+int load_users() // function to load users from users.txt file
 {
     // Load users for user.txt file
     std::ifstream file("users.txt");
@@ -427,9 +451,10 @@ void load_users() // function to load users from users.txt file
         }
     }
     file.close();
+    return 0;
 }
 
-void create_server_socket()
+int create_server_socket()
 {
     // Creating server socket
     int server_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -467,9 +492,10 @@ void create_server_socket()
     // {
     //     std::cout << user.first << " " << user.second << std::endl;
     // }
+    return server_socket;
 }
 
-void_accept_clients()
+void accept_clients(int server_socket)
 {
     while (true)
     {
@@ -490,9 +516,9 @@ int main()
 {
     load_users(); // loading users from users.txt file
 
-    create_server_socket(); // creating server socket
+    int server_socket = create_server_socket(); // creating server socket
 
-    accept_clients(); // accepting clients
+    accept_clients(server_socket); // accepting clients
 
     close(server_socket); // closing the server socket
     return 0;
