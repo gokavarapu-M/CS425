@@ -1,4 +1,12 @@
-# **CS425 Assignment-1:** *Chat Server*
+# **CS425 Assignment-1:** _Chat Server_
+
+## Team Members
+
+| Team members | Roll no. |
+| ------------ | :------: |
+| Manikanta    |  220409  |
+| Rhema        |  221125  |
+| Jyothisha    |  220862  |
 
 ## How to Complie and Run
 
@@ -15,6 +23,7 @@ This make call runs a bash code which complies `server_grp.cpp` and `client_grp.
 ```bash
 ./server_grp
 ```
+
 On successful launch of server, you will receive a message
 
 ```bash
@@ -27,8 +36,10 @@ Server listening on port 12345
 ```bash
 ./cilent_grp
 ```
+
 You can run multiple clients on multiple terminals, only restriction is you can't run same client on different terminals.
 <br/> On success, you we receieve a welcome message from server.
+
 ```bash
 Welcome to the chat server!
 ```
@@ -46,6 +57,7 @@ Welcome to the chat server!
   - **Join an existing group** using `/join_group <group_name>`.
   - **Leave a group** using `/leave_group <group_name>`.
   - **Send messages to a group** using `/group_msg <group_name> <message>`.
+  - Note: Name of person is displayed when a group message is sent.
 - **Threaded Handling of Clients**: Each client connection is handled in a separate thread.
 - **Synchronization**: Proper mutex locking is used to prevent race conditions on shared resources (users, clients, groups).
 
@@ -128,7 +140,7 @@ bob: /msghow are you
 
 - **Example**: `/msg bob` will return `Error: Invalid Format.`,
   <br/> while `/msg bob ` will return `Error: Empty message.`
-  
+
 **Note:** Spaces are not considered as empty message
 
 - **Server Errors**: The server detects and handles socket failures, ensuring stable operation.
@@ -174,6 +186,7 @@ bob: /msghow are you
    c. Handle commands (/msg, /broadcast, /create_group, etc.).
    d. If disconnected, clean up client data.
 ```
+
 ```
 main()
     │
@@ -189,7 +202,9 @@ main()
         └── For each new connection
             └── handle_client()         # New thread
 ```
+
 for each thread
+
 ```
 handle_client(client_socket)
     │
@@ -231,13 +246,13 @@ handle_client(client_socket)
     │       |── If "/exit"
     │       |   └── Break loop
     |       |
-    |       └── If no command matched send "Error: Invalid command" 
+    |       └── If no command matched send "Error: Invalid command"
     │
     └── Cleanup
         ├── cleanup()                  # Remove from clients map and groups
         ├── notify_others()            # Broadcast leave
         └── close(client_socket)       # Close connection
-            
+
 ```
 
 ### **Code Flow (Client-Side)**
@@ -290,11 +305,11 @@ handle_client(client_socket)
 
 ## Contribution of Team Members
 
-| Team Member        | Contribution (%) | Work Done                                                                                                                              |
-| ------------------ | :----------------: | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Manikanta <br/> (220409) | 40%              | Designed server architecture, modularized code , Functionalities, Commenting code, Conducted testing, debugging, and documentation.    |
-| Rhema <br/> (221125)     | 30%              | Implemented authentication, handled multithreading, edge cases like empty messages, Commenting Code, Conducted testing, debugging.     |
-| Jyothisha <br/> (220862) | 30%              | Implemented server architecture, Resolved edge cases like invalid format, Implemented string parsing, Conducted testing, documentation |
+| Team Member              | Contribution (%) | Work Done                                                                                                                              |
+| ------------------------ | :--------------: | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Manikanta <br/> (220409) |       40%        | Designed server architecture, modularized code , Functionalities, Commenting code, Conducted testing, debugging, and documentation.    |
+| Rhema <br/> (221125)     |       30%        | Implemented authentication, handled multithreading, edge cases like empty messages, Commenting Code, Conducted testing, debugging.     |
+| Jyothisha <br/> (220862) |       30%        | Implemented server architecture, Resolved edge cases like invalid format, Implemented string parsing, Conducted testing, documentation |
 
 ---
 
