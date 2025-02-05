@@ -1,4 +1,4 @@
-# **Chat Server with Groups and Private Messaging**
+# **CS425 Assignment-1:** *Chat Server*
 
 ## How to Complie and Run
 
@@ -15,11 +15,22 @@ This make call runs a bash code which complies `server_grp.cpp` and `cilent_grp.
 ```bash
 ./server_grp
 ```
+On successful launch of server, you will receive a message
 
-### Running the Client
+```bash
+Server started :-)
+Server listening on port 12345
+```
+
+### Running a Client
 
 ```bash
 ./client_grp
+```
+You can run multiple cilents on multiple terminals, only restriction is you can't run same cilent on different terminals.
+<br/> On success, you we receieve a welcome message from server.
+```bash
+Welcome to the chat server!
 ```
 
 ## **Assignment Features**
@@ -58,21 +69,21 @@ This make call runs a bash code which complies `server_grp.cpp` and `cilent_grp.
 ### **Synchronization**
 
 - **Mutexes**: `std::mutex` is used to synchronize access to shared resources:
-  - `clients_mutex`: Protects the `clients` map (socket-to-username mapping).
-  - `users_mutex`: Protects the `users` map (user credentials).
-  - `groups_mutex`: Protects the `groups` map (group-to-clients mapping).
+  - `clients_mutex`: Protects the `clients` map (socket-to-username mapping) only contain active users.
+  - `users_mutex`: Protects the `users` map (user-to-password mapping) contains user credintials.
+  - `groups_mutex`: Protects the `groups` map (groupname-to-groups mapping).
 - **Reason**: Prevents race conditions when multiple threads access or modify shared data.
 
 ### **Data Structures**
 
 - **`unordered_map` for Clients/Groups**: Provides O(1) average complexity for lookups.
-- **`unordered_set` for Group Members**: Ensures unique client sockets in groups.
+- **`unordered_set` for Group Members**: Ensures unique client sockets (which implies unique cilents) in groups.
 
 ### **Edge Cases**
 
 - A group with zero user can exist.
   <br/> **Why?**: [Piazza post](https://piazza.com/class/m5h01uph1h12eb/post/61)
-- Message can only be sent to active user but not any user in `users.txt`
+- Message can only be sent to active user but not to any user in `users.txt`
   <br/> **Why?**: [Piazza post](https://piazza.com/class/m5h01uph1h12eb/post/23)
 - Group name cannot contain empty spaces.
   <br/> **Why?**: [Piazza post](https://piazza.com/class/m5h01uph1h12eb/post/67)
@@ -117,13 +128,15 @@ bob: /msghow are you
 
 - **Example**: `/msg bob` will return `Error: Invalid Format.`,
   <br/> while `/msg bob ` will return `Error: Empty message.`
+  
+**Note:** Spaces are not considered as empty message
 
-- **Server Errors**: The server detects and handles socket failures gracefully, ensuring stable operation.
+- **Server Errors**: The server detects and handles socket failures, ensuring stable operation.
 
 ### **Authentication Strategy**
 
 - The server reads `users.txt` at startup and stores credentials in `users` map.
-- **Reason**: This ensures authentication is fast and avoids repeatedly reading the file for each login attempt.
+- **Reason**: This makes authentication fast and avoids repeatedly reading the file for each login.
 
 ---
 
@@ -160,6 +173,71 @@ bob: /msghow are you
    b. If authenticated, add to active clients.
    c. Handle commands (/msg, /broadcast, /create_group, etc.).
    d. If disconnected, clean up client data.
+```
+```
+main()
+    │
+    ├── load_users()                    # Load users from users.txt
+    │   └── Read username:password pairs
+    │
+    ├── create_server_socket()          # Initialize server
+    │   ├── Create socket
+    │   ├── Bind to port
+    │   └── Listen for connections
+    │
+    └── accept_clients()                # Main accept loop
+        └── For each new connection
+            └── handle_client()         # New thread
+```
+for each thread
+```
+handle_client(client_socket)
+    │
+    ├── Authentication
+    │   ├── Send "Enter username: "
+    │   ├── Receive username
+    │   ├── Send "Enter password: "
+    │   ├── Receive password
+    │   └── authenticate()
+    │       └── Check against users map
+    │
+    ├── Client Setup
+    │   ├── add_client()               # Add to clients map
+    │   ├── welcome_msg()              # Send welcome message
+    │   └── notify_others()            # Broadcast join message
+    │
+    ├── Message Processing Loop
+    │   └── While client connected
+    │       ├── Receive message
+    │       │
+    │       ├── If "/broadcast"
+    │       │   └── broadcast()
+    │       │
+    │       ├── If "/msg"
+    │       │   └── private_msg()
+    │       │
+    │       ├── If "/create_group"
+    │       │   └── create_group()
+    │       │
+    │       ├── If "/join_group"
+    │       │   └── join_group()
+    │       │
+    │       ├── If "/group_msg"
+    │       │   └── group_msg()
+    │       │
+    │       ├── If "/leave_group"
+    │       │   └── leave_group()
+    │       │
+    │       |── If "/exit"
+    │       |   └── Break loop
+    |       |
+    |       └── If no command matched send "Error: Invalid command" 
+    │
+    └── Cleanup
+        ├── cleanup()                  # Remove from clients map and groups
+        ├── notify_others()            # Broadcast leave
+        └── close(client_socket)       # Close connection
+            
 ```
 
 ### **Code Flow (Client-Side)**
@@ -226,6 +304,7 @@ bob: /msghow are you
 - C++ Reference (std::thread, std::mutex)
 - Linked post on [locks](https://www.linkedin.com/advice/0/what-some-common-pitfalls-best-practices-when-using)
 - cpp [filesystem](https://devdocs.io/cpp-filesystem/) reference from Devdocs.
+- Socket programming in cpp from [Gfg](https://www.geeksforgeeks.org/socket-programming-in-cpp/)
 
 ## Declaration
 
