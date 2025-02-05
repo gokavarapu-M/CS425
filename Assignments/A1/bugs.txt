@@ -4,3 +4,21 @@
 4. someone can't leave a group if they are not in it
 5. A person was able to login in two terminals
 6. A person recieving his own message when sent in group
+
+Self message
+
+same user1:pass1
+user2:pass1
+user1:pass2
+
+
+AUthentiocation failed write properly!!
+Two cammands for group
+gaps in group name both in join group and create group and leave group
+checking messages if empty or not
+check if a cilent disconnect and connect agian does groups exist still he is a memeber??
+
+
+Assumed text file doesn't contain usernames and passwords with spaces in between
+Just mention how did you conclude your server was functioning correctly, is able to handle load of multiple clients i.e. explain your tests at a high level.
+Send messages to active cilents only
