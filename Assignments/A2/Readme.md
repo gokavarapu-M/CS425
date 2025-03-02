@@ -148,11 +148,11 @@ A shell script (test_dns.sh) can be created to run automated tests on the resolv
 
 ## Contribution of Team Members
 
-| Team Member              | Contribution (%) | Work Done                                                                                                                              |
-| ------------------------ | :--------------: | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Manikanta <br/> (220409) |      33.33%      | Designed server architecture, modularized code , Functionalities, Commenting code, Conducted testing, debugging, and documentation.    |
-| Rhema <br/> (221125)     |      33.33%      | Implemented authentication, handled multithreading, edge cases like empty messages, Commenting Code, Conducted testing, debugging.     |
-| Jyothisha <br/> (220862) |      33.34%      | Implemented server architecture, Resolved edge cases like invalid format, Implemented string parsing, Conducted testing, documentation |
+| Team Member              | Contribution (%) | Work Done         |
+| ------------------------ | :--------------: | ----------------- |
+| Manikanta <br/> (220409) |      33.33%      | Documentation     |
+| Rhema <br/> (221125)     |      33.33%      | Code and Comments |
+| Jyothisha <br/> (220862) |      33.34%      | Code and Comments |
 
 ---
 
