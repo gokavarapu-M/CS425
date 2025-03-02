@@ -145,7 +145,7 @@ This code implements a DNS resolution system that supports both iterative and re
   ```
   [DEBUG] Querying {stage} server ({ns_ip}) - SUCCESS
   ```
-- **Stage failure:** Added printing of errors when a server as a stage does not respond or times out using:
+- **Stage failure:** Added printing of errors when a server at a stage `(ROOT | TLD | AUTH)` does not respond or times out using:
   ```
   print(f"[ERROR] Query failed for {stage} server ({ns_ip})")
   ```
@@ -203,7 +203,7 @@ This code implements a DNS resolution system that supports both iterative and re
 - **IPv4 Only**: The implementation only supports IPv4 addresses (A records), and does not handle IPv6 (AAAA records).
   <br/>
   **Why?** [Piazza Post](https://piazza.com/class/m5h01uph1h12eb/post/110)
-- **Using inbuilt dns resolver**: Used inbuilt dns resolver in recursive implementation.
+- **Using inbuilt dns resolver**: Used inbuilt dns resolver in `extract_next_nameservers` and recursive implementation.
   <br/>
   **Why?** [Piazza Post](https://piazza.com/class/m5h01uph1h12eb/post/114)
 
@@ -283,6 +283,7 @@ dnsresolver.py
 ## Sources Referred
 
 - [DNS python](https://dnspython.readthedocs.io/en/latest/manual.html) to understand different classes and inbuilt functions
+- [DNS Network Programming](https://www.geeksforgeeks.org/network-programming-in-python-dns-look-up/) a geeks for geeks article
 
 ## Declaration
 
