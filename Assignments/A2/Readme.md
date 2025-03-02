@@ -107,12 +107,6 @@ This code implements a DNS resolution system that supports both iterative and re
 - Implements separate error handling for NS record lookups and A record lookups to allow clearer diagnostics.
 - At last it prints the time taken for resolving the given domain.
 
-### **Edge Cases**
-
-### **Error Handling**
-
-### **High-Level Function Overview**
-
 ## **Implementation Details**
 
 ### TODOs Implemented
@@ -125,7 +119,7 @@ This code implements a DNS resolution system that supports both iterative and re
    - Implemented `extract_next_nameservers` function to parse NS records from the authority section.
    - Extracted NS hostnames and resolved them to IP addresses using `dns.resolver.resolve(ns, "A")`.
 3. **Iterative DNS Resolution Process**
-   - Besides the given template we implemented for loop over nameserver list if one fails we check with other.
+   - Besides the given template, a loop is implemented over the nameserver list such that if one nameserver fails (or times out), the resolver checks with the next available server.
    - We also printed error when server not respond or time out
    - Started resolution from root servers.
    - Queried nameservers in a loop, extracting and resolving NS records at each stage (ROOT → TLD → AUTH).
@@ -147,10 +141,28 @@ This code implements a DNS resolution system that supports both iterative and re
   ```
   [ERROR] Failed to resolve NS <hostname>: <error message>
   ```
+- **Debug Messages:** Debug messages are printed to indicate successful queries, for example:
+  ```
+  [DEBUG] Querying {stage} server ({ns_ip}) - SUCCESS
+  ```
+- **Stage failure:** Added printing of errors when a server as a stage does not respond or times out using:
+  ```
+  print(f"[ERROR] Query failed for {stage} server ({ns_ip})")
+  ```
 - **Final Resolution Failure**: If no nameserver responds at any stage:
   ```
   [ERROR] Resolution failed. No response from <stage> servers.
   ```
+- **Empty Nameserver List:** If the nameserver list becomes empty during iterative resolution, the error is printed:
+  ```
+  print("[ERROR] List of nameservers is empty. Resolution failed.")
+  ```
+- **Recursive Lookup Error:** If an error occurs during recursive DNS lookup, it is handled by printing:
+
+  ```
+  print(f"[ERROR] Recursive lookup failed: {e}")
+  ```
+
 - **Successful Resolution Output**:
   ```
   [SUCCESS] <domain> -> <IP address>
@@ -160,6 +172,41 @@ This code implements a DNS resolution system that supports both iterative and re
   Time taken: <seconds> seconds
   ```
 
+### Additional Changes
+
+#### Error Handling in sending query
+
+- Added the try-except block around UDP query along with in `send_dns_query()` to catch exceptions (e.g., timeouts, unreachable servers) and log error messages.
+  <br/>
+- **Why:** Ensures the resolver handles network issues gracefully, in line with the assignment’s instructions to manage errors without crashing.
+
+#### EDNS Extension Enabled
+
+- Enabled EDNS with a 4096-byte UDP buffer by calling `query.use_edns(0, payload=4096)`.
+- This increases the response capacity, which is especially useful when resolving large domains.
+
+#### Improved Iterative Lookup – Server Failover
+
+- Instead of selecting only the first server in the list, the code now loops through all available servers in the current nameserver list.
+- If one server fails to respond, the next server is queried until a valid response is obtained or the list is exhausted.
+- **Why:** [Piazza post](https://piazza.com/class/m5h01uph1h12eb/post/90)
+  <br/> Enhances robustness and reliability by ensuring that transient failures on one server do not stop the resolution process.
+
+### Assumptions
+
+- **Nameserver List Order**: The order of nameservers is not sorted before printing.
+  <br/>
+  **Why?** [Piazza Post](https://piazza.com/class/m5h01uph1h12eb/post/112)
+- **Answer Section Handling**: Assumed that `response.answer[0][0]` always contains an IP address and not a CNAME.
+  <br/>
+  **Why?** [Piazza Post](https://piazza.com/class/m5h01uph1h12eb/post/119)
+- **IPv4 Only**: The implementation only supports IPv4 addresses (A records), and does not handle IPv6 (AAAA records).
+  <br/>
+  **Why?** [Piazza Post](https://piazza.com/class/m5h01uph1h12eb/post/110)
+- **Using inbuilt dns resolver**: Used inbuilt dns resolver in recursive implementation.
+  <br/>
+  **Why?** [Piazza Post](https://piazza.com/class/m5h01uph1h12eb/post/114)
+
 ### Function Overview
 
 | Function                             | Description                                                            |
@@ -168,34 +215,6 @@ This code implements a DNS resolution system that supports both iterative and re
 | `extract_next_nameservers(response)` | Extracts and resolves NS records from a DNS response.                  |
 | `iterative_dns_lookup(domain)`       | Performs iterative DNS resolution starting from root servers.          |
 | `recursive_dns_lookup(domain)`       | Performs recursive DNS resolution using the system's default resolver. |
-
-### Additional Changes
-
-#### Error Handling
-
-- Added the try-except block around UDP query along with in `send_dns_query()` to catch exceptions (e.g., timeouts, unreachable servers) and log error messages.
-  <br/>
-  **Why:** Ensures the resolver handles network issues gracefully, in line with the assignment’s instructions to manage errors without crashing.
-
-#### Improved Iterative Lookup – Server Failover
-
-- Instead of selecting only the first server in the list, the code now loops through all available servers in the current nameserver list.
-- If one server fails to respond, the next server is queried until a valid response is obtained or the list is exhausted.
-- **Why:**
-  - [Piazza post](https://piazza.com/class/m5h01uph1h12eb/post/90)
-  - Enhances robustness and reliability by ensuring that transient failures on one server do not stop the resolution process.
-
-### Assumptions
-
-- **Nameserver List Order**: The order of nameservers is not sorted before printing.
-  <br/>
-  **Why?** [Piazza Post]()
-- **Answer Section Handling**: Assumed that `response.answer[0][0]` always contains an IP address and not a CNAME.
-  <br/>
-  **Why?** [Piazza Post]()
-- **IPv4 Only**: The implementation only supports IPv4 addresses (A records), and does not handle IPv6 (AAAA records).
-  <br/>
-  **Why?** [Piazza Post]()
 
 ### **Code Flow**
 
@@ -234,28 +253,30 @@ dnsresolver.py
 └── After lookup, Print total time taken and exit
 ```
 
-## Challenges and Solutions
+### Testing & Validation
 
-| **Challenge** | **Description** | **Solution** |
-| ------------- | --------------- | ------------ |
+- **Timeout Testing:**
 
-## **Testing**
+  - The implementation was tested by changing the `TIMEOUT` value to simulate slower responses and verify that the error handling correctly prints timeout errors.
 
-- Timeouts
-- commenting and faking root servers
+- **Unavailable Root Servers:**
 
-A shell script (test_dns.sh) can be created to run automated tests on the resolver:
+  - Some root servers were temporarily commented out from the `ROOT_SERVERS` list to simulate scenarios where certain servers are unreachable. This ensured that the iterative process moves on to the next available server and prints the appropriate error messages.
 
-- It tests both iterative and recursive modes.
-- It verifies behavior for valid domains (e.g., google.com, example.com) and for expected failures (e.g., nonexistent.domain).
+- **Fake Servers Testing:**
+  - The resolver was also tested by substituting all nameservers with fake IP addresses. This test verified that the implementation correctly outputs all the error messages, including both the `[ERROR] Query failed for {stage} server ({ns_ip})` and the final failure message `[ERROR] List of nameservers is empty. Resolution failed.`
+- **Automated Testing:**
+  - A shell script (test_dns.sh) can be created to run automated tests on the resolver:
+  - It tests both iterative and recursive modes.
+  - It verifies behavior for valid domains (e.g., google.com, example.com) and for expected failures (e.g., nonexistent.domain).
 
 ## Contribution of Team Members
 
-| Team Member              | Contribution (%) | Work Done         |
-| ------------------------ | :--------------: | ----------------- |
-| Manikanta <br/> (220409) |      33.33%      | Documentation     |
-| Rhema <br/> (221125)     |      33.33%      | Code and Comments |
-| Jyothisha <br/> (220862) |      33.34%      | Code and Comments |
+| Team Member              | Contribution (%) | Work Done                 |
+| ------------------------ | :--------------: | ------------------------- |
+| Manikanta <br/> (220409) |      33.33%      | Documentation and Testing |
+| Rhema <br/> (221125)     |      33.33%      | Code and Comments         |
+| Jyothisha <br/> (220862) |      33.34%      | Code and Comments         |
 
 ---
 
