@@ -288,3 +288,5 @@ dnsresolver.py
 ## Declaration
 
 We, (**Manikanta, Rhema and Jyothisha**) declare that this assignment was completed independently without plagiarism. Any external sources used are appropriately referenced.
+
+**Note:** When testing with domains like google.com, you may notice that iterative and recursive queries return different IP addresses. This is expected behavior due to load balancing, round-robin DNS, caching differences, and geo-location optimizations used by many large-scale services.
