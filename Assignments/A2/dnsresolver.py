@@ -173,7 +173,7 @@ def iterative_dns_lookup(domain):
 
         
     # If the loop completes without returning (i.e. cases like when list is empty), resolution fails
-    print("[ERROR] Resolution failed.") # Final failure message if no nameservers respond
+    print("[ERROR] List of nameservers is empty. Resolution failed.") # Final failure message if no nameservers respond
     return
 
 def recursive_dns_lookup(domain):
