@@ -8,32 +8,36 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 
-// Define server port as per assignment instructions
+// Global definitions matching the assignment and the server's expectations.
 #define SERVER_PORT 12345
-
-// Define hard-coded sequence numbers based on server logic:
-// Client's initial SYN sequence: 200
-// Server's SYN-ACK: server sequence 400, acknowledgment of 201 (200+1)
-// Client's final ACK: sequence 600, acknowledgment of server's seq+1 (400+1)
 #define CLIENT_SYN_SEQ 200
-#define CLIENT_ACK_FINAL_SEQ 600
-#define SERVER_SYN_SEQ 400
-
-// Packet size = IP header + TCP header
+#define CLIENT_FINAL_ACK_SEQ 600
 #define PACKET_SIZE (sizeof(struct iphdr) + sizeof(struct tcphdr))
+// Although the server sends a SYN-ACK with sequence 400, we capture the value during the handshake.
 
-// Function to create and return a raw socket with IP_HDRINCL enabled.
+using namespace std;
+
+// Function to print TCP flags in a style similar to the server's output.
+void print_tcp_flags(struct tcphdr *tcp)
+{
+    cout << "[+] TCP Flags:  "
+         << "SYN: " << (int)tcp->syn
+         << " ACK: " << (int)tcp->ack
+         << " FIN: " << (int)tcp->fin
+         << " RST: " << (int)tcp->rst
+         << " PSH: " << (int)tcp->psh
+         << " SEQ: " << ntohl(tcp->seq) << endl;
+}
+
+// Create a raw socket with IP_HDRINCL enabled.
 int create_raw_socket()
 {
-    // Create raw socket with TCP protocol
     int sock = socket(AF_INET, SOCK_RAW, IPPROTO_TCP);
     if (sock < 0)
     {
         perror("Socket creation failed");
         exit(EXIT_FAILURE);
     }
-
-    // Tell the kernel that headers are included in the packet
     int one = 1;
     if (setsockopt(sock, IPPROTO_IP, IP_HDRINCL, &one, sizeof(one)) < 0)
     {
@@ -43,89 +47,131 @@ int create_raw_socket()
     return sock;
 }
 
-// Function to construct and send a TCP packet given the required header fields.
-void send_packet(int sock, const char *src_ip, int src_port, const char *dst_ip, int dst_port,
-                 uint32_t seq, uint32_t ack_seq, bool syn, bool ack)
+// Constructs and sends an SYN packet.
+void send_syn(int sock, const char *client_ip, int client_port, const char *server_ip)
 {
-    // Allocate buffer for the packet
     char packet[PACKET_SIZE];
-    memset(packet, 0, sizeof(packet));
+    memset(packet, 0, PACKET_SIZE);
 
-    // Pointers to the IP header and TCP header parts of the packet buffer
+    // IP and TCP header pointers.
     struct iphdr *ip = (struct iphdr *)packet;
     struct tcphdr *tcp = (struct tcphdr *)(packet + sizeof(struct iphdr));
 
-    // ---------------- IP HEADER ----------------
-    ip->ihl = 5;     // IP header length
-    ip->version = 4; // IPv4
-    ip->tos = 0;     // Type of service
+    // IP header.
+    ip->ihl = 5;
+    ip->version = 4;
+    ip->tos = 0;
     ip->tot_len = htons(PACKET_SIZE);
-    ip->id = htons(54321);         // Identification (arbitrary)
-    ip->frag_off = 0;              // Fragment offset
-    ip->ttl = 64;                  // Time to live
-    ip->protocol = IPPROTO_TCP;    // Protocol
-    ip->saddr = inet_addr(src_ip); // Source IP address
-    ip->daddr = inet_addr(dst_ip); // Destination IP address
+    ip->id = htons(54321);
+    ip->frag_off = 0;
+    ip->ttl = 64;
+    ip->protocol = IPPROTO_TCP;
+    ip->saddr = inet_addr(client_ip);
+    ip->daddr = inet_addr(server_ip);
 
-    // ---------------- TCP HEADER ----------------
-    tcp->source = htons(src_port);         // Source port
-    tcp->dest = htons(dst_port);           // Destination port
-    tcp->seq = htonl(seq);                 // Sequence number as provided
-    tcp->ack_seq = htonl(ack_seq);         // Acknowledgment number as provided
-    tcp->doff = sizeof(struct tcphdr) / 4; // Data offset (header size in 32-bit words)
-
-    // Set flags: SYN and ACK as needed
-    tcp->syn = syn ? 1 : 0;
-    tcp->ack = ack ? 1 : 0;
+    // TCP header for the SYN.
+    tcp->source = htons(client_port);
+    tcp->dest = htons(SERVER_PORT);
+    tcp->seq = htonl(CLIENT_SYN_SEQ);
+    tcp->ack_seq = 0;
+    tcp->doff = sizeof(struct tcphdr) / 4;
+    tcp->syn = 1;
+    tcp->ack = 0;
     tcp->fin = 0;
     tcp->rst = 0;
     tcp->psh = 0;
+    tcp->window = htons(8192);
+    tcp->check = 0; // Kernel may compute checksum.
 
-    tcp->window = htons(8192); // Window size (arbitrary valid value)
-    tcp->check = 0;            // Checksum (set to 0; kernel may compute it)
-
-    // Destination address structure required for sendto()
+    // Prepare destination structure.
     struct sockaddr_in dest_addr;
     dest_addr.sin_family = AF_INET;
-    dest_addr.sin_port = htons(dst_port);
-    dest_addr.sin_addr.s_addr = inet_addr(dst_ip);
+    dest_addr.sin_port = htons(SERVER_PORT);
+    dest_addr.sin_addr.s_addr = inet_addr(server_ip);
 
-    // Send the packet using sendto()
+    cout << "[+] Client sending SYN..." << endl;
+    // Print the TCP header flags (matches server's debug style).
+    print_tcp_flags(tcp);
+
     if (sendto(sock, packet, PACKET_SIZE, 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr)) < 0)
     {
-        perror("sendto() failed");
+        perror("sendto() failed for SYN packet");
     }
     else
     {
-        std::cout << "[+] Packet sent: "
-                  << "seq=" << seq << " ack_seq=" << ack_seq
-                  << " SYN=" << tcp->syn << " ACK=" << tcp->ack << std::endl;
+        cout << "[+] SYN sent" << endl;
     }
 }
 
-int main()
+// Constructs and sends the final ACK packet (client’s ACK to complete the handshake).
+void send_final_ack(int sock, const char *client_ip, int client_port, const char *server_ip, uint32_t server_seq)
 {
-    // Assume the client is running on localhost and connecting to server on localhost.
-    const char *client_ip = "127.0.0.1";
-    const char *server_ip = "127.0.0.1";
-    // Use an arbitrary client source port (must be >1024)
-    int client_port = 54321;
+    char packet[PACKET_SIZE];
+    memset(packet, 0, PACKET_SIZE);
 
-    // Create raw socket for sending and receiving
+    // IP and TCP header pointers.
+    struct iphdr *ip = (struct iphdr *)packet;
+    struct tcphdr *tcp = (struct tcphdr *)(packet + sizeof(struct iphdr));
+
+    // IP header.
+    ip->ihl = 5;
+    ip->version = 4;
+    ip->tos = 0;
+    ip->tot_len = htons(PACKET_SIZE);
+    ip->id = htons(54321);
+    ip->frag_off = 0;
+    ip->ttl = 64;
+    ip->protocol = IPPROTO_TCP;
+    ip->saddr = inet_addr(client_ip);
+    ip->daddr = inet_addr(server_ip);
+
+    // TCP header for the final ACK.
+    tcp->source = htons(client_port);
+    tcp->dest = htons(SERVER_PORT);
+    tcp->seq = htonl(CLIENT_FINAL_ACK_SEQ);
+    tcp->ack_seq = htonl(server_seq + 1);
+    tcp->doff = sizeof(struct tcphdr) / 4;
+    tcp->syn = 0;
+    tcp->ack = 1;
+    tcp->fin = 0;
+    tcp->rst = 0;
+    tcp->psh = 0;
+    tcp->window = htons(8192);
+    tcp->check = 0;
+
+    struct sockaddr_in dest_addr;
+    dest_addr.sin_family = AF_INET;
+    dest_addr.sin_port = htons(SERVER_PORT);
+    dest_addr.sin_addr.s_addr = inet_addr(server_ip);
+
+    cout << "[+] Client sending final ACK..." << endl;
+    print_tcp_flags(tcp);
+
+    if (sendto(sock, packet, PACKET_SIZE, 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr)) < 0)
+    {
+        perror("sendto() failed for final ACK packet");
+    }
+    else
+    {
+        cout << "[+] Final ACK sent" << endl;
+    }
+}
+
+// Performs the complete three-way handshake by sending the SYN, waiting for the SYN-ACK, and sending the ACK.
+void perform_hand_shake(const char *client_ip, int client_port, const char *server_ip)
+{
     int sock = create_raw_socket();
 
-    // ----------- STEP 1: Send SYN packet -----------
-    std::cout << "[*] Sending SYN packet..." << std::endl;
-    // SYN packet: SYN set, no ACK, sequence number = 200, ack_seq = 0 (not used)
-    send_packet(sock, client_ip, client_port, server_ip, SERVER_PORT, CLIENT_SYN_SEQ, 0, true, false);
+    // Step 1: Send SYN.
+    send_syn(sock, client_ip, client_port, server_ip);
 
-    // ----------- STEP 2: Wait for SYN-ACK response -----------
-    std::cout << "[*] Waiting for SYN-ACK response..." << std::endl;
+    // Step 2: Wait for SYN-ACK.
+    cout << "[+] Waiting for SYN-ACK from " << server_ip << "..." << endl;
     char buffer[65536];
     struct sockaddr_in src_addr;
     socklen_t addr_len = sizeof(src_addr);
+    uint32_t server_seq = 0;
     bool synack_received = false;
-    uint32_t server_seq = 0; // Will be used to compute ack for the final packet
 
     while (!synack_received)
     {
@@ -135,45 +181,41 @@ int main()
             perror("recvfrom() failed");
             continue;
         }
-
-        // Parse the IP and TCP headers from the received packet
         struct iphdr *ip = (struct iphdr *)buffer;
-        // TCP header offset is computed using IP header length (ip->ihl)
         struct tcphdr *tcp = (struct tcphdr *)(buffer + (ip->ihl * 4));
 
-        // Check if the packet is from the server port (i.e. source port in packet) and for our client port (destination)
+        // Make sure the packet is from the expected server port and destined to our client port.
         if (ntohs(tcp->source) != SERVER_PORT || ntohs(tcp->dest) != client_port)
             continue;
 
-        // Check that this is the SYN-ACK packet (SYN and ACK flags set)
-        if (tcp->syn == 1 && tcp->ack == 1)
+        // Print the TCP flags received (aligned with server output style).
+        print_tcp_flags(tcp);
+
+        // Check for SYN-ACK: SYN and ACK must be set, and ack_seq should be CLIENT_SYN_SEQ+1.
+        if (tcp->syn == 1 && tcp->ack == 1 && ntohl(tcp->ack_seq) == CLIENT_SYN_SEQ + 1)
         {
-            // The server should be acknowledging our SYN, hence ack_seq should equal CLIENT_SYN_SEQ + 1 (i.e., 201)
-            uint32_t expected_ack = CLIENT_SYN_SEQ + 1;
-            if (ntohl(tcp->ack_seq) != expected_ack)
-            {
-                std::cerr << "[-] Received SYN-ACK with incorrect ack_seq: Expected " << expected_ack
-                          << ", Got " << ntohl(tcp->ack_seq) << std::endl;
-                continue;
-            }
-            // Save server's sequence number (should be 400 as per server code)
             server_seq = ntohl(tcp->seq);
-            std::cout << "[+] Received SYN-ACK from " << inet_ntoa(src_addr.sin_addr)
-                      << " with server sequence: " << server_seq << std::endl;
+            cout << "[+] Received SYN-ACK from " << inet_ntoa(src_addr.sin_addr) << endl;
             synack_received = true;
         }
     }
 
-    // ----------- STEP 3: Send Final ACK -----------
-    std::cout << "[*] Sending final ACK to complete handshake..." << std::endl;
-    // According to assignment, client must now send an ACK with sequence number = 600.
-    // Typically, the ACK number would be server_seq + 1.
-    uint32_t final_ack_seq = server_seq + 1; // Expected to be 401 if server_seq was 400.
-    // However, note that the server checks for client sequence number = 600.
-    send_packet(sock, client_ip, client_port, server_ip, SERVER_PORT, CLIENT_ACK_FINAL_SEQ, final_ack_seq, false, true);
-
-    std::cout << "[+] Handshake complete. Exiting." << std::endl;
-
+    // Step 3: Send final ACK.
+    send_final_ack(sock, client_ip, client_port, server_ip, server_seq);
+    cout << "[+] Handshake complete." << endl;
     close(sock);
+}
+
+int main()
+{
+    // Client and server are assumed to be running on localhost.
+    const char *client_ip = "127.0.0.1";
+    const char *server_ip = "127.0.0.1";
+    // Use an arbitrary client source port (>1024).
+    int client_port = 54321;
+
+    // Initiate the handshake.
+    perform_hand_shake(client_ip, client_port, server_ip);
+
     return 0;
 }
