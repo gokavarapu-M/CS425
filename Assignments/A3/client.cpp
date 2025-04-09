@@ -162,10 +162,10 @@ void perform_hand_shake(const char *client_ip, int client_port, const char *serv
 {
     int sock = create_raw_socket();
 
-    // Step 1: Send SYN.
+    // Step 1: Send SYN to the server.
     send_syn(sock, client_ip, client_port, server_ip);
 
-    // Step 2: Wait for SYN-ACK.
+    // Step 2: Wait for SYN-ACK from the server.
     cout << "[+] Waiting for SYN-ACK from " << server_ip << "..." << endl;
     char buffer[65536];
     struct sockaddr_in src_addr;
@@ -211,6 +211,7 @@ int main()
     // Client and server are assumed to be running on localhost.
     const char *client_ip = "127.0.0.1";
     const char *server_ip = "127.0.0.1";
+
     // Use an arbitrary client source port (>1024).
     int client_port = 54321;
 
