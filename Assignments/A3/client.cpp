@@ -57,7 +57,7 @@ void send_syn(int sock, const char *client_ip, int client_port, const char *serv
     struct iphdr *ip = (struct iphdr *)packet;
     struct tcphdr *tcp = (struct tcphdr *)(packet + sizeof(struct iphdr));
 
-    // IP header.
+    // Filling IP header.
     ip->ihl = 5;
     ip->version = 4;
     ip->tos = 0;
@@ -113,7 +113,7 @@ void send_final_ack(int sock, const char *client_ip, int client_port, const char
     struct iphdr *ip = (struct iphdr *)packet;
     struct tcphdr *tcp = (struct tcphdr *)(packet + sizeof(struct iphdr));
 
-    // IP header.
+    // Filling IP header.
     ip->ihl = 5;
     ip->version = 4;
     ip->tos = 0;
@@ -216,6 +216,7 @@ int main()
     int client_port = 54321;
 
     // Initiate the handshake.
+    std::cout << "[+] Starting TCP handshake..." << std::endl;
     perform_hand_shake(client_ip, client_port, server_ip);
 
     return 0;
