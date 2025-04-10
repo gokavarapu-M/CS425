@@ -42,6 +42,7 @@ Follow these steps to compile and run the TCP handshake client and server:
 
 - **In the client's terminal:**
   ```
+  [+] Starting TCP handshake...
   [+] Client sending SYN...
   [+] TCP Flags:  SYN: 1 ACK: 0 FIN: 0 RST: 0 PSH: 0 SEQ: 200
   [+] SYN sent
@@ -93,6 +94,18 @@ The handshake follows these specific steps and sequence numbers:
 - **Sequence Numbers:** The specific sequence numbers (Client SYN: 200, Server SYN-ACK: 400, Client ACK: 600) are hardcoded as required by the assignment [cite: 10, A3/client.cpp].
 - **Error Checks:** The code includes basic error checking (using `perror()`) for operations like socket creation and sending packets [cite: A3/client.cpp].
 
+## Assumptions
+
+- Debug statements(containing TCP flags and relevant IP info) are printed whenever ACK is sent or SYN-ACK is recieved.
+  <br/> **Why?** [Piazza post](https://piazza.com/class/m5h01uph1h12eb/post/153)
+- Implemented client.cpp using raw sockets, assuming that the client program will be executed with sudo privileges just like server.cpp.
+  <br/> **Why?** [Piazza post](https://piazza.com/class/m5h01uph1h12eb/post/160)
+- Client resides on same IP as the Server.
+  <br/> **Why?** [Piazza post](https://piazza.com/class/m5h01uph1h12eb/post/169)
+- Both client and server work on local host
+  <br/> **Why?** [Piazza post](https://piazza.com/class/m5h01uph1h12eb/post/170)
+- No specific implementation to check errors and timeout when server fails
+
 ## Testing
 
 - **Step-by-step Checks:** Each part of the handshake (sending SYN, receiving SYN-ACK, sending ACK) was checked to make sure the packets were created correctly with the right sequence numbers.
@@ -100,15 +113,17 @@ The handshake follows these specific steps and sequence numbers:
 
 ## Contribution of Team Members
 
-| Team Member              | Contribution (%) | Work Done                                      |
-| :----------------------- | :--------------: | :--------------------------------------------- |
-| Manikanta <br/> (220409) |      33.3%       | Wrote initial client structure, SYN sending    |
-| Rhema <br/> (221125)     |      33.3%       | Implemented SYN-ACK receiving logic, final ACK |
-| Jyothisha <br/> (220862) |      33.4%       | Added comments, wrote README, tested code      |
+| Team Member              | Contribution (%) | Work Done                                                |
+| :----------------------- | :--------------: | :------------------------------------------------------- |
+| Manikanta <br/> (220409) |       40%        | Implemented Socket setup,SYN handling, Debugging, README |
+| Rhema <br/> (221125)     |       30%        | Handled SYN-ACK recieving & parsing, Debugging, README   |
+| Jyothisha <br/> (220862) |       30%        | Implemented Final ACK,utilities, Debugging, README       |
 
 ## Sources Used
 
 - Understanding Raw Sockets in C: [https://www.binarytides.com/raw-sockets-c-code-linux/](https://www.binarytides.com/raw-sockets-c-code-linux/) - Helped in learning how to create custom IP/TCP packets using raw sockets.
+- To learn about Socket programming on Linux: [https://www.linuxhowtos.org/C_C++/socket.htm](https://www.linuxhowtos.org/C_C++/socket.htm) - Helped in understanding how to use sockets for interprocess communication on Linux.
+- Understanding Raw Socket - Send/Recieve: [https://cplusplus.com/forum/general/7109/](https://cplusplus.com/forum/general/7109/) - Helped in analysing a Raw socket Send/Recieve problem.
 
 ## Declaration
 
