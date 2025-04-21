@@ -23,7 +23,7 @@ void printDVRTable(int node,
                    const vector<vector<int>> &dist,
                    const vector<vector<int>> &nextHop)
 {
-    cout << "Node " << node << " Routing Table (Distance Vector):\n";
+    cout << "Node " << node << " Routing Table:\n";
     cout << "Dest\tCost\tNext Hop\n";
     int n = dist.size();
     for (int dest = 0; dest < n; ++dest)
@@ -119,7 +119,7 @@ void printLSRTable(int src,
                    const vector<int> &dist,
                    const vector<int> &prev)
 {
-    cout << "Node " << src << " Routing Table (Link State):\n";
+    cout << "Node " << src << " Routing Table:\n";
     cout << "Dest\tCost\tNext Hop\n";
     int n = dist.size();
     for (int dest = 0; dest < n; ++dest)
